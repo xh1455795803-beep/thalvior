@@ -1,0 +1,9 @@
+{
+  "name": "thalvior",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.6.0",
+  "scripts": {"dev":"pnpm --filter @thalvior/web dev","build":"pnpm --filter @thalvior/web build","lint":"pnpm --filter @thalvior/web lint"},
+  "engines":{"node":">=20.0.0"},
+  "workspaces":["apps/*","packages/*"]
+}
