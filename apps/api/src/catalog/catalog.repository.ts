@@ -29,6 +29,14 @@ export class CatalogRepository {
     return product ? this.toProductRecord(product) : null;
   }
 
+  async listProducts(tenantId: string, status?: string): Promise<CatalogProductRecord[]> {
+    const products = await db.product.findMany({
+      where: { tenantId, ...(status ? { status } : {}) },
+      orderBy: { createdAt: 'desc' },
+    });
+    return products.map((product) => this.toProductRecord(product));
+  }
+
   async create(product: Omit<CatalogProductRecord, 'id'>): Promise<CatalogProductRecord> {
     const existing = await this.findByTenantAndSpu(product.tenantId, product.spu);
     if (existing) throw new Error('Product SPU already exists for this tenant');
@@ -40,6 +48,12 @@ export class CatalogRepository {
     const product = await db.product.findFirst({ where: { id, tenantId } });
     if (!product) throw new NotFoundException('Product not found');
     return this.toProductRecord(product);
+  }
+
+  async listSkus(tenantId: string, productId: string): Promise<CatalogSkuRecord[]> {
+    await this.getForTenant(tenantId, productId);
+    const skus = await db.sku.findMany({ where: { productId }, orderBy: { createdAt: 'desc' } });
+    return skus.map((sku) => this.toSkuRecord(sku, tenantId));
   }
 
   async createSku(input: {
@@ -54,39 +68,15 @@ export class CatalogRepository {
     await this.getForTenant(input.tenantId, input.productId);
     const existing = await db.sku.findFirst({ where: { productId: input.productId, sku: input.sku } });
     if (existing) throw new Error('SKU already exists for this product');
-
-    const created = await db.sku.create({
-      data: {
-        productId: input.productId,
-        sku: input.sku,
-        barcode: input.barcode ?? null,
-        cost: input.cost,
-        weightGram: input.weightGram ?? null,
-        attributes: input.attributes ?? null,
-      },
-    });
-
-    return {
-      id: created.id,
-      tenantId: input.tenantId,
-      productId: created.productId,
-      sku: created.sku,
-      barcode: created.barcode,
-      cost: created.cost.toString(),
-      weightGram: created.weightGram?.toString() ?? null,
-      attributes: created.attributes,
-    };
+    const created = await db.sku.create({ data: { productId: input.productId, sku: input.sku, barcode: input.barcode ?? null, cost: input.cost, weightGram: input.weightGram ?? null, attributes: input.attributes ?? null } });
+    return this.toSkuRecord(created, input.tenantId);
   }
 
-  private toProductRecord(product: {
-    id: string;
-    tenantId: string;
-    spu: string;
-    name: string;
-    brand: string | null;
-    description: string | null;
-    status: string;
-  }): CatalogProductRecord {
+  private toProductRecord(product: { id: string; tenantId: string; spu: string; name: string; brand: string | null; description: string | null; status: string }): CatalogProductRecord {
     return { id: product.id, tenantId: product.tenantId, spu: product.spu, name: product.name, brand: product.brand, description: product.description, status: product.status };
+  }
+
+  private toSkuRecord(sku: { id: string; productId: string; sku: string; barcode: string | null; cost: { toString(): string }; weightGram: { toString(): string } | null; attributes: unknown }, tenantId: string): CatalogSkuRecord {
+    return { id: sku.id, tenantId, productId: sku.productId, sku: sku.sku, barcode: sku.barcode, cost: sku.cost.toString(), weightGram: sku.weightGram?.toString() ?? null, attributes: sku.attributes };
   }
 }
