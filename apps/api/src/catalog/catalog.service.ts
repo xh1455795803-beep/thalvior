@@ -11,14 +11,7 @@ export class CatalogService {
     if (!input.tenantId) throw new BadRequestException('tenantId is required');
     if (!input.spu?.trim()) throw new BadRequestException('spu is required');
     if (!input.name?.trim()) throw new BadRequestException('name is required');
-    return {
-      tenantId: input.tenantId,
-      spu: input.spu.trim(),
-      name: input.name.trim(),
-      brand: input.brand?.trim() || null,
-      description: input.description?.trim() || null,
-      status: input.status ?? 'draft',
-    };
+    return { tenantId: input.tenantId, spu: input.spu.trim(), name: input.name.trim(), brand: input.brand?.trim() || null, description: input.description?.trim() || null, status: input.status ?? 'draft' };
   }
 
   async createProduct(input: CreateProductDto) {
@@ -34,8 +27,7 @@ export class CatalogService {
     if (!input.tenantId || !input.productId) throw new BadRequestException('tenantId and productId are required');
     if (!input.sku?.trim()) throw new BadRequestException('sku is required');
     if (!input.cost) throw new BadRequestException('cost is required');
-    await this.repository.getForTenant(input.tenantId, input.productId);
-    return {
+    return this.repository.createSku({
       tenantId: input.tenantId,
       productId: input.productId,
       sku: input.sku.trim(),
@@ -43,6 +35,6 @@ export class CatalogService {
       cost: input.cost,
       weightGram: input.weightGram ?? null,
       attributes: input.attributes ?? null,
-    };
+    });
   }
 }
