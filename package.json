@@ -3,7 +3,15 @@
   "private": true,
   "version": "0.1.0",
   "packageManager": "pnpm@10.6.0",
-  "scripts": {"dev":"pnpm --filter @thalvior/web dev","build":"pnpm --filter @thalvior/web build","lint":"pnpm --filter @thalvior/web lint"},
-  "engines":{"node":">=20.0.0"},
-  "workspaces":["apps/*","packages/*"]
+  "scripts": {
+    "dev": "pnpm --parallel --filter @thalvior/web --filter @thalvior/api dev",
+    "dev:web": "pnpm --filter @thalvior/web dev",
+    "dev:api": "pnpm --filter @thalvior/api dev",
+    "build": "pnpm --filter @thalvior/web build && pnpm --filter @thalvior/api build",
+    "build:web": "pnpm --filter @thalvior/web build",
+    "build:api": "pnpm --filter @thalvior/api build",
+    "lint": "pnpm --filter @thalvior/web lint"
+  },
+  "engines": {"node": ">=20.0.0"},
+  "workspaces": ["apps/*", "packages/*"]
 }
