@@ -1,11 +1,16 @@
 import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { CatalogService } from './catalog.service';
+import { CatalogContentService } from './catalog-content.service';
 import type { CreateProductDto, CreateSkuDto } from './catalog.dto';
+import type { CreateProductContentDto } from './catalog-content.dto';
 
 @Controller('catalog')
 export class CatalogController {
-  constructor(private readonly service: CatalogService) {}
+  constructor(
+    private readonly service: CatalogService,
+    private readonly contentService: CatalogContentService,
+  ) {}
 
   @Get('scope')
   getScope(@Req() request: Request, @Query('status') status?: string) {
@@ -28,4 +33,14 @@ export class CatalogController {
 
   @Post('skus')
   createSku(@Body() body: CreateSkuDto) { return this.service.createSku(body); }
+
+  @Post('products/:productId/content')
+  createProductContent(@Req() request: Request, @Param('productId') productId: string, @Body() body: Omit<CreateProductContentDto, 'tenantId' | 'productId'>) {
+    return this.contentService.create({ ...body, tenantId: request.header('x-tenant-id') ?? '', productId });
+  }
+
+  @Get('products/:productId/content')
+  listProductContent(@Req() request: Request, @Param('productId') productId: string) {
+    return this.contentService.list(request.header('x-tenant-id') ?? '', productId);
+  }
 }
