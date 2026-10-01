@@ -14,27 +14,27 @@ export class CatalogService {
     return { tenantId: input.tenantId, spu: input.spu.trim(), name: input.name.trim(), brand: input.brand?.trim() || null, description: input.description?.trim() || null, status: input.status ?? 'draft' };
   }
 
-  async createProduct(input: CreateProductDto) {
-    return this.repository.create(this.validateCreateProduct(input));
+  async listProducts(tenantId: string, status?: string) {
+    if (!tenantId) throw new BadRequestException('tenantId is required');
+    return this.repository.listProducts(tenantId, status);
   }
+
+  async createProduct(input: CreateProductDto) { return this.repository.create(this.validateCreateProduct(input)); }
 
   async getProduct(tenantId: string, id: string) {
     if (!tenantId) throw new BadRequestException('tenantId is required');
     return this.repository.getForTenant(tenantId, id);
   }
 
+  async listSkus(tenantId: string, productId: string) {
+    if (!tenantId) throw new BadRequestException('tenantId is required');
+    return this.repository.listSkus(tenantId, productId);
+  }
+
   async createSku(input: CreateSkuDto) {
     if (!input.tenantId || !input.productId) throw new BadRequestException('tenantId and productId are required');
     if (!input.sku?.trim()) throw new BadRequestException('sku is required');
     if (!input.cost) throw new BadRequestException('cost is required');
-    return this.repository.createSku({
-      tenantId: input.tenantId,
-      productId: input.productId,
-      sku: input.sku.trim(),
-      barcode: input.barcode?.trim() || null,
-      cost: input.cost,
-      weightGram: input.weightGram ?? null,
-      attributes: input.attributes ?? null,
-    });
+    return this.repository.createSku({ tenantId: input.tenantId, productId: input.productId, sku: input.sku.trim(), barcode: input.barcode?.trim() || null, cost: input.cost, weightGram: input.weightGram ?? null, attributes: input.attributes ?? null });
   }
 }
