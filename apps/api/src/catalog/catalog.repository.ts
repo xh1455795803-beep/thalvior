@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { db } from '@thalvior/db';
 
 export interface CatalogProductRecord {
   id: string;
@@ -10,34 +11,52 @@ export interface CatalogProductRecord {
   status: string;
 }
 
-/**
- * Persistence boundary for the catalog domain.
- * The API layer deliberately depends on this contract rather than leaking
- * Prisma types into controllers. Database wiring can be supplied here when
- * the shared DB package exposes its generated client.
- */
 @Injectable()
 export class CatalogRepository {
-  private readonly products = new Map<string, CatalogProductRecord>();
-
-  findByTenantAndSpu(tenantId: string, spu: string) {
-    for (const product of this.products.values()) {
-      if (product.tenantId === tenantId && product.spu === spu) return product;
-    }
-    return null;
+  async findByTenantAndSpu(tenantId: string, spu: string): Promise<CatalogProductRecord | null> {
+    const product = await db.product.findFirst({ where: { tenantId, spu } });
+    return product ? this.toRecord(product) : null;
   }
 
-  create(product: Omit<CatalogProductRecord, 'id'>) {
-    const existing = this.findByTenantAndSpu(product.tenantId, product.spu);
+  async create(product: Omit<CatalogProductRecord, 'id'>): Promise<CatalogProductRecord> {
+    const existing = await this.findByTenantAndSpu(product.tenantId, product.spu);
     if (existing) throw new Error('Product SPU already exists for this tenant');
-    const record = { ...product, id: `product_${Date.now()}_${Math.random().toString(36).slice(2, 8)}` };
-    this.products.set(record.id, record);
-    return record;
+    const created = await db.product.create({
+      data: {
+        tenantId: product.tenantId,
+        spu: product.spu,
+        name: product.name,
+        brand: product.brand,
+        description: product.description,
+        status: product.status,
+      },
+    });
+    return this.toRecord(created);
   }
 
-  getForTenant(tenantId: string, id: string) {
-    const product = this.products.get(id);
-    if (!product || product.tenantId !== tenantId) throw new NotFoundException('Product not found');
-    return product;
+  async getForTenant(tenantId: string, id: string): Promise<CatalogProductRecord> {
+    const product = await db.product.findFirst({ where: { id, tenantId } });
+    if (!product) throw new NotFoundException('Product not found');
+    return this.toRecord(product);
+  }
+
+  private toRecord(product: {
+    id: string;
+    tenantId: string;
+    spu: string;
+    name: string;
+    brand: string | null;
+    description: string | null;
+    status: string;
+  }): CatalogProductRecord {
+    return {
+      id: product.id,
+      tenantId: product.tenantId,
+      spu: product.spu,
+      name: product.name,
+      brand: product.brand,
+      description: product.description,
+      status: product.status,
+    };
   }
 }
