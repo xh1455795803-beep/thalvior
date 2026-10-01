@@ -21,20 +21,20 @@ export class CatalogService {
     };
   }
 
-  createProduct(input: CreateProductDto) {
+  async createProduct(input: CreateProductDto) {
     return this.repository.create(this.validateCreateProduct(input));
   }
 
-  getProduct(tenantId: string, id: string) {
+  async getProduct(tenantId: string, id: string) {
     if (!tenantId) throw new BadRequestException('tenantId is required');
     return this.repository.getForTenant(tenantId, id);
   }
 
-  createSku(input: CreateSkuDto) {
+  async createSku(input: CreateSkuDto) {
     if (!input.tenantId || !input.productId) throw new BadRequestException('tenantId and productId are required');
     if (!input.sku?.trim()) throw new BadRequestException('sku is required');
     if (!input.cost) throw new BadRequestException('cost is required');
-    this.repository.getForTenant(input.tenantId, input.productId);
+    await this.repository.getForTenant(input.tenantId, input.productId);
     return {
       tenantId: input.tenantId,
       productId: input.productId,
